@@ -8,6 +8,11 @@
                                           mode))
   )
 
+(defun refbuf/reflect-current-buffer ()
+  (interactive)
+  (switch-to-buffer (refbuf/get-or-create (current-buffer)))
+  )
+
 (defun refbuf/get-or-create (original-buffer-or-name
                              &optional
                              reflected-format
