@@ -85,7 +85,7 @@
                        (remove-hook
                         'after-change-functions
                         (refbuf/gene-after-change-function
-                         ,reflected ,original)
+                         ,original ,reflected)
                         t)       ; remove from buffer local hook
                        )
                      (message

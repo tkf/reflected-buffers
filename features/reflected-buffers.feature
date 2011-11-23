@@ -48,8 +48,8 @@ Feature: Reflected Buffers
     Then buffer "**RefBufTest* (ref)*" does not exists
     Then there is no reflected buffer of "*RefBufTest*"
     Then buffer "*RefBufTest*" exists
-    # Given I am in buffer "*RefBufTest*"
-    # And I insert "this will not cause error"
+    Given I am in buffer "*RefBufTest*"
+    And I insert "this will not cause error"
 
   Scenario: Three reflected buffers
     Given I am in clean buffer "*RefBufTest*"
