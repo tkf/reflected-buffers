@@ -64,8 +64,10 @@
         )
 
       ;; prevent `kill-all-local-variables' to delete these hooks
-      (put 'original-to-reflected 'permanent-local-hook t)
-      (put 'reflected-to-original 'permanent-local-hook t)
+      (put original-to-reflected 'permanent-local-hook t)
+      (put reflected-to-original 'permanent-local-hook t)
+      (message (format "original-to-reflected: %s" original-to-reflected))
+      (message (format "reflected-to-original: %s" reflected-to-original))
 
       ;; set buffer local `after-change-functions'
       (loop for (src dest src-to-dest) in
@@ -91,9 +93,12 @@
                      (with-current-buffer
                          ,original
                        (remove-hook 'after-change-functions
-                                    ,original-to-reflected
+                                    ',original-to-reflected
                                     t) ; remove from buffer local hook
                        )
+                     ;; delete symbols
+                     (unintern ',original-to-reflected)
+                     (unintern ',reflected-to-original)
                      (message
                       (format
                        (concat "refbuf: removed `after-change-function'"
@@ -115,6 +120,9 @@
         (add-hook 'kill-buffer-hook
                   `(lambda ()
                      (kill-buffer ,reflected)
+                     ;; delete symbols
+                     (unintern ',original-to-reflected)
+                     (unintern ',reflected-to-original)
                      (message
                       (format "refbuf: '%s' is killed because '%s' is killed"
                               (buffer-name ,reflected)
@@ -130,15 +138,24 @@
     ))
 
 
-(defun refbuf/gene-after-change-function (src dest)
-  `(lambda (from to change)
-     (with-current-buffer
-         ,dest
-       (save-excursion                          ; needed to use `goto-char'
-         (delete-region from (+ from change))   ; remove pre-changed text
-         (goto-char from)                       ; the change starts from here
-         (insert-buffer-substring ,src from to) ; insert the change
-         ))))
+(defmacro refbuf/gene-after-change-function (src dest)
+  (let ((src-name (gensym "refbuf/after-change-function-src-"))
+        (dest-name (gensym "refbuf/after-change-function-dest-"))
+        (func-name (gensym "refbuf/after-change-function-")))
+    `(progn
+       (setq ,src-name ,src)
+       (setq ,dest-name ,dest)
+       ;; (setq ,func-name 'dummy)
+       (defun ,func-name (from to change)
+         (with-current-buffer
+             ,dest-name
+           (save-excursion              ; needed to use `goto-char'
+             (delete-region from        ; remove pre-changed text
+                            (+ from change))
+             (goto-char from)           ; the change starts from here
+             (insert-buffer-substring ,src-name from to) ; insert the change
+             )))
+       )))
 
 
 (defun refbuf/save-other-buffer (other-buffer)
