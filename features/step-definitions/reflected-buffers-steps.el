@@ -14,9 +14,25 @@
            (erase-buffer))
          ))
 
+
+(Then "^buffer \"\\(.+\\)\"\\( does not\\|\\) exists$"
+      (lambda (buffer exists)
+        (if (string= " does not" exists)
+            (assert (not (get-buffer buffer)) nil
+                    (message (format "Buffer named \"%s\" exists"
+                                     buffer)))
+          (assert (get-buffer buffer) nil
+                  (message (format "No buffer named \"%s\" does not"
+                                   buffer)))
+          )
+        ))
+
+
 (Then "^there is no reflected buffer of \"\\(.+\\)\"$"
       (lambda (buffer)
-        (let ((reflected (refbuf/get-reflected buffer)))
+        (let ((reflected (loop for f in (refbuf/get-reflected buffer)
+                               collect (format "\"%s\"" f))))
           (assert (not reflected) nil
-                  (concat "There are remaining reflected buffer(s):"
-                          (format "%s" reflected))))))
+                  (concat "There are remaining reflected buffer(s): "
+                          (mapconcat 'identity reflected ", ")
+                          )))))
