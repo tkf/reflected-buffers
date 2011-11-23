@@ -27,6 +27,10 @@
          (reflected (if reflected-old
                         reflected-old                       ; use existing one
                       (get-buffer-create reflected-name)))  ; create new one
+         (original-to-reflected
+          (refbuf/gene-after-change-function original reflected))
+         (reflected-to-original
+          (refbuf/gene-after-change-function reflected original))
          )
 
     (when (not reflected-old)
@@ -59,16 +63,20 @@
         (setq buffer-undo-list nil)
         )
 
+      ;; prevent `kill-all-local-variables' to delete these hooks
+      (put 'original-to-reflected 'permanent-local-hook t)
+      (put 'reflected-to-original 'permanent-local-hook t)
+
       ;; set buffer local `after-change-functions'
-      (loop for (src dest) in `((,original ,reflected)
-                                (,reflected ,original))
+      (loop for (src dest src-to-dest) in
+            `((,original ,reflected ,original-to-reflected)
+              (,reflected ,original ,reflected-to-original))
             do (with-current-buffer
                    src
-                 (add-hook 'after-change-functions
-                           (refbuf/gene-after-change-function src dest)
-                           nil  ; append
-                           t    ; make the hook buffer local
-                           ))
+                 (add-hook 'after-change-functions src-to-dest nil t)
+                 ;; 3rd arg = nil: append
+                 ;; 4th arg = t: make the hook buffer local
+                 )
             (message (format
                       "refbuf: added after-change-function (copy: %s -> %s)"
                       (buffer-name src) (buffer-name dest)))
@@ -82,11 +90,9 @@
                   `(lambda ()
                      (with-current-buffer
                          ,original
-                       (remove-hook
-                        'after-change-functions
-                        (refbuf/gene-after-change-function
-                         ,original ,reflected)
-                        t)       ; remove from buffer local hook
+                       (remove-hook 'after-change-functions
+                                    ,original-to-reflected
+                                    t) ; remove from buffer local hook
                        )
                      (message
                       (format
