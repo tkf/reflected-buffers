@@ -18,23 +18,23 @@
 (require 'espuds)
 (require 'ert)
 
-(Before
- ;; Start with a clean slate.
- (switch-to-buffer (get-buffer-create "*RefBufTest*"))
- (erase-buffer)
- (transient-mark-mode 1)
- (deactivate-mark)
- )
+
+(setq refbuf/test-buf "*RefBufTest*")
+
+
+(defun refbuf/get-reflected (original)
+  (loop for buf in (buffer-list)
+        when (string-match (concat ".+" (regexp-quote original) ".+")
+                           (buffer-name buf))
+        collect buf))
+
 
 (After
- (kill-buffer (get-buffer-create "*RefBufTest*"))
+ (kill-buffer (get-buffer-create refbuf/test-buf))
 
  ;; Kill reflected buffers if exists.
  ;; Note that if reflected-buffers works correctly, there should be no
  ;; remaining reflected buffers.
- (loop for buf in (buffer-list)
-       do (when (string-match
-                 "*RefBufTest*" (buffer-name buf))
-            (kill-buffer buf)
-            ))
+ (loop for buf in (refbuf/get-reflected refbuf/test-buf)
+       do (kill-buffer buf))
  )
