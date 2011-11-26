@@ -59,6 +59,19 @@
         (setq buffer-undo-list nil)
         )
 
+      ;; add buffer local hooks
+      (with-current-buffer
+          original
+        (add-hook 'after-change-functions 'refbuf/reflect-change nil t)
+        (add-hook 'kill-buffer-hook 'refbuf/kill-reflected-buffers nil t)
+        )
+      (with-current-buffer
+          reflected
+        (add-hook 'after-change-functions 'refbuf/reflect-change nil t)
+        (add-hook 'kill-buffer-hook 'refbuf/remove-reflection-from-original
+                  nil t)
+        )
+
       (refbuf/add-reflect-change-dest-list reflected original)
       (refbuf/add-reflect-change-dest-list original reflected)
       (refbuf/add-reflected-buffer-list original reflected)
@@ -94,7 +107,7 @@
                     src from to)           ; insert the change
                    ))
             ))))
-(add-hook 'after-change-functions 'refbuf/reflect-change)
+(put 'refbuf/reflect-change 'permanent-local-hook t)
 
 
 ;;; refbuf/{add,del}-reflect-change-dest-list
@@ -144,7 +157,7 @@ variable will be killed.")
                               reflected (current-buffer))
                     ))
     ))
-(add-hook 'kill-buffer-hook 'refbuf/kill-reflected-buffers)
+(put 'refbuf/kill-reflected-buffers 'permanent-local-hook t)
 
 
 ;;; refbuf/remove-reflection-from-original (and its helpers)
@@ -177,7 +190,7 @@ the current buffer (reflected buffer) is killed.
                  (refbuf/del-reflect-change-dest-list original reflected)
                  ))))
   )
-(add-hook 'kill-buffer-hook 'refbuf/remove-reflection-from-original)
+(put 'refbuf/remove-reflection-from-original 'permanent-local-hook t)
 
 
 ;;; refbuf/save-other-buffer (and its helpers)
