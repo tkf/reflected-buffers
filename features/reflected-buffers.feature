@@ -51,6 +51,26 @@ Feature: Reflected Buffers
     Given I am in buffer "*RefBufTest*"
     And I insert "this will not cause error"
 
+  Scenario: Second call just opens the reflected buffers
+    Given I am in clean buffer "*RefBufTest*"
+    And I insert "first words"
+    And I eval (refbuf/reflect-current-buffer)
+    Then I should be in buffer "**RefBufTest* (ref)*"
+    Given I am in buffer "*RefBufTest*"
+    And I eval (refbuf/reflect-current-buffer)
+    Then I should be in buffer "**RefBufTest* (ref)*"
+    And I should see "first words"
+
+  Scenario: Second call with mode just opens the reflected buffers
+    Given I am in clean buffer "*RefBufTest*"
+    And I insert "first words"
+    And I eval (refbuf/with-mode 'text-mode)
+    Then I should be in buffer "**RefBufTest* (ref|mode:text-mode)*"
+    Given I am in buffer "*RefBufTest*"
+    And I eval (refbuf/with-mode 'text-mode)
+    Then I should be in buffer "**RefBufTest* (ref|mode:text-mode)*"
+    And I should see "first words"
+
   Scenario: Three reflected buffers
     Given I am in clean buffer "*RefBufTest*"
     And I insert "first words"
@@ -65,9 +85,9 @@ Feature: Reflected Buffers
     And I insert "zeroth words, "
     And I press "C-e"
     And I insert " and additional words"
-    And I eval (refbuf/with-mode 'text-mode)
+    And I am in buffer "**RefBufTest* (ref|mode:text-mode)*"
     Then I should see "zeroth words, first words and additional words"
-    And I eval (refbuf/with-mode 'lisp-mode)
+    And I am in buffer "**RefBufTest* (ref|mode:lisp-mode)*"
     Then I should see "zeroth words, first words and additional words"
     And I am in buffer "*RefBufTest*"
     And I press "C-x k"
@@ -92,6 +112,6 @@ Feature: Reflected Buffers
     Given I am in buffer "*RefBufTest*"
     Then I should see "zeroth words, first words and additional words"
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref)*" does not exists
+    Then buffer "**RefBufTest* (ref)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
     And I insert "this will not cause error"
