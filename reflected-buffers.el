@@ -27,10 +27,6 @@
          (reflected (if reflected-old
                         reflected-old                       ; use existing one
                       (get-buffer-create reflected-name)))  ; create new one
-         (original-to-reflected
-          (refbuf/gene-after-change-function original reflected))
-         (reflected-to-original
-          (refbuf/gene-after-change-function reflected original))
          )
 
     (when (not reflected-old)
@@ -63,101 +59,128 @@
         (setq buffer-undo-list nil)
         )
 
-      ;; prevent `kill-all-local-variables' to delete these hooks
-      (put original-to-reflected 'permanent-local-hook t)
-      (put reflected-to-original 'permanent-local-hook t)
-      (message (format "original-to-reflected: %s" original-to-reflected))
-      (message (format "reflected-to-original: %s" reflected-to-original))
-
-      ;; set buffer local `after-change-functions'
-      (loop for (src dest src-to-dest) in
-            `((,original ,reflected ,original-to-reflected)
-              (,reflected ,original ,reflected-to-original))
-            do (with-current-buffer
-                   src
-                 (add-hook 'after-change-functions src-to-dest nil t)
-                 ;; 3rd arg = nil: append
-                 ;; 4th arg = t: make the hook buffer local
-                 )
-            (message (format
-                      "refbuf: added after-change-function (copy: %s -> %s)"
-                      (buffer-name src) (buffer-name dest)))
-            )
+      (refbuf/add-reflect-change-dest-list reflected original)
+      (refbuf/add-reflect-change-dest-list original reflected)
+      (refbuf/add-reflected-buffer-list original reflected)
+      (refbuf/set-is-reflected-t reflected)
 
       (with-current-buffer
           reflected
-        ;; when `reflected' is killed,
-        ;; remove `after-change-functions' from `original'
-        (add-hook 'kill-buffer-hook
-                  `(lambda ()
-                     (with-current-buffer
-                         ,original
-                       (remove-hook 'after-change-functions
-                                    ',original-to-reflected
-                                    t) ; remove from buffer local hook
-                       )
-                     ;; delete symbols
-                     (unintern ',original-to-reflected)
-                     (unintern ',reflected-to-original)
-                     (message
-                      (format
-                       (concat "refbuf: removed `after-change-function'"
-                               " of '%s' because '%s' is killed")
-                       (buffer-name ,original)
-                       (buffer-name ,reflected)
-                       ))
-                     )
-                  nil  ; append
-                  t    ; make the hook buffer local
-                  )
         ;; buffer local keys
         (local-set-key "\C-x\C-s" (refbuf/gene-save-other-buffer original))
-        )
-
-      (with-current-buffer
-          original
-        ;; when `original' is killed, kill `reflected'
-        (add-hook 'kill-buffer-hook
-                  `(lambda ()
-                     (kill-buffer ,reflected)
-                     ;; delete symbols
-                     (unintern ',original-to-reflected)
-                     (unintern ',reflected-to-original)
-                     (message
-                      (format "refbuf: '%s' is killed because '%s' is killed"
-                              (buffer-name ,reflected)
-                              (buffer-name ,original)
-                              ))
-                     )
-                  nil  ; append
-                  t    ; make the hook buffer local
-                  )
         )
       )
     reflected
     ))
 
 
-(defmacro refbuf/gene-after-change-function (src dest)
-  (let ((src-name (gensym "refbuf/after-change-function-src-"))
-        (dest-name (gensym "refbuf/after-change-function-dest-"))
-        (func-name (gensym "refbuf/after-change-function-")))
-    `(progn
-       (setq ,src-name ,src)
-       (setq ,dest-name ,dest)
-       ;; (setq ,func-name 'dummy)
-       (defun ,func-name (from to change)
-         (with-current-buffer
-             ,dest-name
-           (save-excursion              ; needed to use `goto-char'
-             (delete-region from        ; remove pre-changed text
-                            (+ from change))
-             (goto-char from)           ; the change starts from here
-             (insert-buffer-substring ,src-name from to) ; insert the change
-             )))
-       )))
+;;; refbuf/reflect-change (and its helpers)
+(defvar refbuf/reflect-change-dest-list nil
+  "A buffer local variable to store the destinations of reflection")
+(make-variable-buffer-local 'refbuf/reflect-change-dest-list)
+(put 'refbuf/reflect-change-dest-list 'permanent-local t)
+
+(defun refbuf/reflect-change (from to change)
+  (when refbuf/reflect-change-dest-list
+    (let ((src (current-buffer)))
+      (loop for dest in refbuf/reflect-change-dest-list
+            do (with-current-buffer
+                   dest
+                 (save-excursion           ; needed to use `goto-char'
+                   (delete-region
+                    from (+ from change))  ; remove pre-changed text
+                   (goto-char from)        ; the change starts from here
+                   (insert-buffer-substring
+                    src from to)           ; insert the change
+                   ))
+            ))))
+(add-hook 'after-change-functions 'refbuf/reflect-change)
 
 
+;;; refbuf/{add,del}-reflect-change-dest-list
+(defun refbuf/add-reflect-change-dest-list (src dest)
+  (with-current-buffer
+      src
+    (push dest refbuf/reflect-change-dest-list)
+    ))
+
+(defun refbuf/del-reflect-change-dest-list (src dest)
+  (with-current-buffer
+      src
+    (setq refbuf/reflect-change-dest-list
+          (remq dest refbuf/reflect-change-dest-list))
+    ;; (delq dest refbuf/reflect-change-dest-list) ; why this doesn't work?
+    )
+  (message (concat "refbuf: removed '%s' from "
+                   "`refbuf/reflect-change-dest-list' of '%s' "
+                   "because '%s' is killed")
+           dest src dest)
+  )
+
+
+;;; refbuf/kill-reflected-buffers (and its helpers)
+(defvar refbuf/reflected-buffer-list nil
+  "A buffer local variable to store the buffers to kill
+
+This is used to store the reflected buffers of the original
+buffer (see `refbuf/kill-reflected-buffers'). When the current
+buffer (original buffer) is killed, all the buffers in this
+variable will be killed.")
+(make-variable-buffer-local 'refbuf/reflected-buffer-list)
+(put 'refbuf/reflected-buffer-list 'permanent-local t)
+
+(defun refbuf/add-reflected-buffer-list (original reflected)
+  (with-current-buffer
+      original
+    (push reflected refbuf/reflected-buffer-list)
+    ))
+
+(defun refbuf/kill-reflected-buffers ()
+  "When `original' is killed, kill `reflected'"
+  (when refbuf/reflected-buffer-list
+    (loop for reflected in refbuf/reflected-buffer-list
+          do (progn (kill-buffer reflected)
+                    (message "refbuf: '%s' is killed because '%s' is killed"
+                              reflected (current-buffer))
+                    ))
+    ))
+(add-hook 'kill-buffer-hook 'refbuf/kill-reflected-buffers)
+
+
+;;; refbuf/remove-reflection-from-original (and its helpers)
+(defvar refbuf/is-reflected nil
+  "A buffer local variable to store whether the buffer is a reflection")
+(make-variable-buffer-local 'refbuf/is-reflected)
+(put 'refbuf/is-reflected 'permanent-local t)
+
+(defun refbuf/set-is-reflected-t (buf)
+  (with-current-buffer
+      buf
+    (setq refbuf/is-reflected t))
+  )
+
+(defun refbuf/remove-reflection-from-original ()
+  "Remove reflection to the current buffer from its original buffer
+
+This function works only when the current buffer is an reflected
+buffer, i.e. `refbuf/is-reflected' is non-`nil'.
+
+This function removes the current buffer (reflected buffer) from
+`refbuf/reflect-change-dest-list' of original buffer when
+the current buffer (reflected buffer) is killed.
+`reflected' is killed"
+  (when refbuf/is-reflected
+    (let ((reflected (current-buffer)))
+      (loop for original in refbuf/reflect-change-dest-list
+            do (with-current-buffer
+                   original
+                 (refbuf/del-reflect-change-dest-list original reflected)
+                 ))))
+  )
+(add-hook 'kill-buffer-hook 'refbuf/remove-reflection-from-original)
+
+
+;;; refbuf/save-other-buffer (and its helpers)
 (defun refbuf/save-other-buffer (other-buffer)
   (with-current-buffer other-buffer (save-buffer)))
 
