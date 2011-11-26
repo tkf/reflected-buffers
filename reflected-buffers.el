@@ -3,12 +3,14 @@
 ;;; Code:
 
 (defun refbuf/with-mode (mode)
+  "Ope a reflected buffer of the current buffer and set major mode"
   (switch-to-buffer (refbuf/get-or-create (current-buffer)
                                           (format "*%%s (ref|mode:%s)*" mode)
                                           mode))
   )
 
 (defun refbuf/reflect-current-buffer ()
+  "Open a reflected buffer of the current buffer"
   (interactive)
   (switch-to-buffer (refbuf/get-or-create (current-buffer)))
   )
@@ -17,6 +19,7 @@
                              &optional
                              reflected-format
                              new-buffer-callback)
+  "Create a reflected buffer of ORIGINAL-BUFFER-OR-NAME"
   (interactive "b")
   (let* ((original (get-buffer original-buffer-or-name))
          (reflected-name
@@ -35,21 +38,16 @@
           reflected
         (when new-buffer-callback (funcall new-buffer-callback)))
       ;; NOTE:
-      ;;   `new-buffer-callback' must be called BEFORE setting any
-      ;;   buffer local variables (e.g., `after-change-functions')
-      ;;   because this hook is intended to use to set major mode for
-      ;;   the reflected buffer and usually `kill-all-local-variables'
-      ;;   is called when major mode is started.
-      ;;   If `new-buffer-callback' is called after setting local
-      ;;   hooks, `kill-all-local-variables' will remove all the
-      ;;   hooks, ruining the purpose of this function!
+      ;;   `new-buffer-callback' is called here because the first
+      ;;    version of reflected-buffers.el is not resistant to
+      ;;    `kill-all-local-variables'. Now, there is no need to set
+      ;;    major mode here but I will keep this here to be on the
+      ;;    safe side.
 
       ;; copy: original => reflected
       (with-current-buffer
           original
-        (copy-to-buffer reflected         ; buffer
-                        (point-min)       ; start
-                        (point-max)))     ; end
+        (copy-to-buffer reflected (point-min) (point-max)))
 
       ;; clear undo history of the `reflected' buffer, so that undo
       ;; history of the `reflected' buffer doesn't start from an
