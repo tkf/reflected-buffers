@@ -15,14 +15,14 @@
          ))
 
 
-(Then "^buffer \"\\(.+\\)\"\\( does not\\|\\) exists$"
+(Then "^buffer \"\\(.+\\)\"\\( does not\\|\\) exists?$"
       (lambda (buffer exists)
         (if (string= " does not" exists)
             (assert (not (get-buffer buffer)) nil
                     (message (format "Buffer named \"%s\" exists"
                                      buffer)))
           (assert (get-buffer buffer) nil
-                  (message (format "No buffer named \"%s\" does not"
+                  (message (format "No buffer named \"%s\" exists"
                                    buffer)))
           )
         ))
