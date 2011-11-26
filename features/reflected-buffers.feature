@@ -12,7 +12,7 @@ Feature: Reflected Buffers
     Given I am in buffer "*RefBufTest*"
     Then I should see "zeroth words, first words and additional words"
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref)*" does not exists
+    Then buffer "**RefBufTest* (ref)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
 
   Scenario: Different major modes should work with reflected buffer
@@ -28,7 +28,7 @@ Feature: Reflected Buffers
     Given I am in buffer "*RefBufTest*"
     Then I should see "zeroth words, first words and additional words"
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref|mode:text-mode)*" does not exists
+    Then buffer "**RefBufTest* (ref|mode:text-mode)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
 
   Scenario: Killing original kills reflected buffer
@@ -37,7 +37,7 @@ Feature: Reflected Buffers
     Given I am in buffer "*RefBufTest*"
     Then buffer "**RefBufTest* (ref)*" exists
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref)*" does not exists
+    Then buffer "**RefBufTest* (ref)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
 
   Scenario: Killing reflected buffer removes buffer local hooks
@@ -45,7 +45,7 @@ Feature: Reflected Buffers
     And I eval (refbuf/reflect-current-buffer)
     Then buffer "**RefBufTest* (ref)*" exists
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref)*" does not exists
+    Then buffer "**RefBufTest* (ref)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
     Then buffer "*RefBufTest*" exists
     Given I am in buffer "*RefBufTest*"
@@ -71,8 +71,8 @@ Feature: Reflected Buffers
     Then I should see "zeroth words, first words and additional words"
     And I am in buffer "*RefBufTest*"
     And I press "C-x k"
-    Then buffer "**RefBufTest* (ref|mode:text-mode)*" does not exists
-    Then buffer "**RefBufTest* (ref|mode:lisp-mode)*" does not exists
+    Then buffer "**RefBufTest* (ref|mode:text-mode)*" does not exist
+    Then buffer "**RefBufTest* (ref|mode:lisp-mode)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
 
   Scenario: kill-all-local-variables cant kill me
