@@ -29,6 +29,10 @@
         collect buf))
 
 
+(Before
+ (setq refbuf/test-dir (make-temp-file "RefBufTestDir-" t)))
+
+
 (After
  (kill-buffer (get-buffer-create refbuf/test-buf))
 
@@ -37,4 +41,6 @@
  ;; remaining reflected buffers.
  (loop for buf in (refbuf/get-reflected refbuf/test-buf)
        do (kill-buffer buf))
+
+ (delete-directory refbuf/test-dir t)
  )

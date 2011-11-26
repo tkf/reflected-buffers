@@ -115,3 +115,12 @@ Feature: Reflected Buffers
     Then buffer "**RefBufTest* (ref)*" does not exist
     Then there is no reflected buffer of "*RefBufTest*"
     And I insert "this will not cause error"
+
+  Scenario: Saving reflected buffer saves the original
+    Given I open a temp file in RefBufTestDir
+    And I insert "first words"
+    And I eval (refbuf/reflect-current-buffer)
+    And I press "C-x C-s"
+    Then I should see message "refbuf: Saved original buffer 'RefBufTestFile"
+    And I press "C-x b"
+    Then this buffer is not modified

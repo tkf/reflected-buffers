@@ -14,6 +14,23 @@
            (erase-buffer))
          ))
 
+(Given "^I open a temp file in RefBufTestDir$"
+       (lambda ()
+         (let ((temporary-file-directory refbuf/test-dir))
+           (find-file (make-temp-file "RefBufTestFile-"))
+           )
+         ))
+
+(Then "^this buffer is\\( not\\|\\) modified$"
+      (lambda (modified)
+        (if (string= " not" modified)
+            (assert (not (buffer-modified-p)) nil
+                    (format "the buffer '%s' is modified"
+                            (current-buffer)))
+          (assert (buffer-modified-p) nil
+                  (format "the buffer '%s' is not modified"
+                          (current-buffer)))
+          )))
 
 (Then "^buffer \"\\(.+\\)\"\\( does not\\|\\) exists?$"
       (lambda (buffer exists)

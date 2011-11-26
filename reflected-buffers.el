@@ -193,7 +193,10 @@ the current buffer (reflected buffer) is killed.
 
 ;;; refbuf/save-other-buffer (and its helpers)
 (defun refbuf/save-other-buffer (other-buffer)
-  (with-current-buffer other-buffer (save-buffer)))
+  (with-current-buffer other-buffer
+    (save-buffer)
+    (message "refbuf: Saved original buffer '%s'" other-buffer)
+    ))
 
 
 (defun refbuf/gene-save-other-buffer (other-buffer)
