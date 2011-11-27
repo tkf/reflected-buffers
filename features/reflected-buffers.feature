@@ -124,3 +124,18 @@ Feature: Reflected Buffers
     Then I should see message "refbuf: Saved original buffer 'RefBufTestFile"
     And I press "C-x b"
     Then this buffer is not modified
+    Then files "RefBufTestFile-.*" under RefBufTestDir exist
+
+  Scenario: Saving-reflection works only in reflected buffers
+    # Saving-reflection: the previous Scenario
+    Given I am in clean buffer "*RefBufTest*"
+    And I insert "first words"
+    And I eval (refbuf/with-mode 'lisp-mode)
+    Given I open a temp file in RefBufTestDir
+    And I eval (lisp-mode)
+    And I insert "(lisp code)"
+    And I press "C-x C-s"
+    Then I should see message "Saving file "
+    Then files "RefBufTestFile-.*" under RefBufTestDir exist
+    # Then I should see message "Wrote "
+    Then this buffer is not modified

@@ -30,7 +30,9 @@
 
 
 (Before
- (setq refbuf/test-dir (make-temp-file "RefBufTestDir-" t)))
+ (setq refbuf/test-dir
+       (file-name-as-directory (make-temp-file "RefBufTestDir-" t)))
+ )
 
 
 (After

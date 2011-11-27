@@ -3,7 +3,7 @@
 ;;; Code:
 
 (defun refbuf/with-mode (mode)
-  "Ope a reflected buffer of the current buffer and set major mode"
+  "Open a reflected buffer of the current buffer and set major mode"
   (switch-to-buffer (refbuf/get-or-create (current-buffer)
                                           (format "*%%s (ref|mode:%s)*" mode)
                                           mode))
@@ -68,18 +68,14 @@
         (add-hook 'after-change-functions 'refbuf/reflect-change nil t)
         (add-hook 'kill-buffer-hook 'refbuf/remove-reflection-from-original
                   nil t)
+        (refbuf/reflected-mode)
         )
 
       (refbuf/add-reflect-change-dest-list reflected original)
       (refbuf/add-reflect-change-dest-list original reflected)
       (refbuf/add-reflected-buffer-list original reflected)
       (refbuf/set-is-reflected-t reflected)
-
-      (with-current-buffer
-          reflected
-        ;; buffer local keys
-        (local-set-key "\C-x\C-s" (refbuf/gene-save-other-buffer original))
-        )
+      (refbuf/set-original-buffer original reflected)
       )
     reflected
     ))
@@ -191,18 +187,39 @@ the current buffer (reflected buffer) is killed.
 (put 'refbuf/remove-reflection-from-original 'permanent-local-hook t)
 
 
-;;; refbuf/save-other-buffer (and its helpers)
-(defun refbuf/save-other-buffer (other-buffer)
-  (with-current-buffer other-buffer
-    (save-buffer)
-    (message "refbuf: Saved original buffer '%s'" other-buffer)
-    ))
+;;; refbuf/save-original-buffer (and its helpers)
+(defvar refbuf/original-buffer nil
+  "A buffer local variable to store the original buffer")
+(make-variable-buffer-local 'refbuf/original-buffer)
+(put 'refbuf/original-buffer 'permanent-local t)
+
+(defun refbuf/set-original-buffer (original reflected)
+  "Set original buffer of the reflected buffer"
+  (with-current-buffer reflected
+    (setq refbuf/original-buffer original)))
+
+(defun refbuf/save-original-buffer ()
+  (interactive)
+  (when refbuf/original-buffer
+    (with-current-buffer refbuf/original-buffer
+      (save-buffer)
+      (message "refbuf: Saved original buffer '%s'" (current-buffer))
+      )))
 
 
-(defun refbuf/gene-save-other-buffer (other-buffer)
-  `(lambda ()
-     (interactive)
-     (refbuf/save-other-buffer ,other-buffer)))
+;;; Setup minor mode: refbuf/reflected-mode
+(defvar refbuf/reflected-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\C-x\C-s" 'refbuf/save-original-buffer)
+    map)
+  "Keymap for `refbuf/reflected-mode'.")
+
+(define-minor-mode refbuf/reflected-mode
+  "Minor mode for reflected buffers."
+  :init-value nil
+  :keymap refbuf/reflected-mode-map
+  )
+
 
 (provide 'reflected-buffers)
 

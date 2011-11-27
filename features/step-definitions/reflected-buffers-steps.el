@@ -32,6 +32,24 @@
                           (current-buffer)))
           )))
 
+(defun assert-files-under-dir-exists (file dir exists)
+  (let ((files (directory-files dir nil file)))
+    (if (string= " does not" exists)
+        (assert (not files) nil
+                (format "Files \"%s\" exist" files))
+      (assert files nil
+              (format "No file \"%s\" under \"%s\" exists" file dir))
+      )
+    ))
+
+(Then "^files \"\\(.+\\)\" under \"\\(.+\\)\"\\( does not\\|\\) exists?$"
+      'assert-files-under-dir-exists)
+
+(Then "^files \"\\(.+\\)\" under RefBufTestDir\\( does not\\|\\) exists?$"
+      (lambda (files exists)
+        (assert-files-under-dir-exists files refbuf/test-dir exists)
+        ))
+
 (Then "^buffer \"\\(.+\\)\"\\( does not\\|\\) exists?$"
       (lambda (buffer exists)
         (if (string= " does not" exists)
