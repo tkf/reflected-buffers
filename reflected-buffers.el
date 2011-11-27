@@ -115,8 +115,7 @@
   (with-current-buffer
       src
     (setq refbuf/reflect-change-dest-list
-          (remq dest refbuf/reflect-change-dest-list))
-    ;; (delq dest refbuf/reflect-change-dest-list) ; why this doesn't work?
+          (delq dest refbuf/reflect-change-dest-list))
     )
   (message (concat "refbuf: removed '%s' from "
                    "`refbuf/reflect-change-dest-list' of '%s' "
