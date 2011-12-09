@@ -200,6 +200,7 @@ the current buffer (reflected buffer) is killed.
 (defun refbuf/save-original-buffer ()
   (interactive)
   (when refbuf/original-buffer
+    (set-buffer-modified-p nil)
     (with-current-buffer refbuf/original-buffer
       (save-buffer)
       (message "refbuf: Saved original buffer '%s'" (current-buffer))
