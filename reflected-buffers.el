@@ -97,7 +97,7 @@
                    (delete-region
                     from (+ from change))  ; remove pre-changed text
                    (goto-char from)        ; the change starts from here
-                   (insert-buffer-substring
+                   (insert-buffer-substring-no-properties
                     src from to)           ; insert the change
                    ))
             ))))
