@@ -62,6 +62,7 @@
           original
         (add-hook 'after-change-functions 'refbuf/reflect-change nil t)
         (add-hook 'kill-buffer-hook 'refbuf/kill-reflected-buffers nil t)
+        (add-hook 'after-save-hook 'refbuf/reflect-modified-p nil t)
         )
       (with-current-buffer
           reflected
@@ -100,7 +101,8 @@
                    (insert-buffer-substring-no-properties
                     src from to)           ; insert the change
                    ))
-            ))))
+            ))
+    (refbuf/reflect-modified-p)))
 (put 'refbuf/reflect-change 'permanent-local-hook t)
 
 
@@ -200,11 +202,20 @@ the current buffer (reflected buffer) is killed.
 (defun refbuf/save-original-buffer ()
   (interactive)
   (when refbuf/original-buffer
-    (set-buffer-modified-p nil)
     (with-current-buffer refbuf/original-buffer
       (save-buffer)
       (message "refbuf: Saved original buffer '%s'" (current-buffer))
       )))
+
+(defun refbuf/reflect-modified-p ()
+  "Mark the reflected buffers (un)modified if the original is (un)modified"
+  (when refbuf/reflect-change-dest-list
+    (let ((src-modified-p (buffer-modified-p)))
+      (loop for dest in refbuf/reflect-change-dest-list
+            do (with-current-buffer
+                   dest
+                 (set-buffer-modified-p src-modified-p))))))
+(put 'refbuf/reflect-modified-p 'permanent-local-hook t)
 
 
 ;;; Setup minor mode: refbuf/reflected-mode
